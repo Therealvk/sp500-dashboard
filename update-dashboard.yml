@@ -1,0 +1,38 @@
+name: Update S&P 500 Dashboard
+
+on:
+  schedule:
+    # 22:00 UTC on weekdays = after the US market close in both EST and EDT.
+    # (GitHub cron is always UTC and does not adjust for daylight saving.)
+    - cron: "0 22 * * 1-5"
+  workflow_dispatch:  # adds a "Run workflow" button so you can trigger it manually
+
+permissions:
+  contents: write  # lets the job commit the refreshed dashboard back to the repo
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build dashboard
+        run: python generate.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git commit -m "Update dashboard $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
+          git push
